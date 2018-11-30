@@ -2,18 +2,45 @@ from flask import Blueprint, render_template, flash, request, redirect, url_for
 from flask_login import login_user, logout_user, login_required
 
 from appname.extensions import cache
-from appname.forms import LoginForm
+from appname.forms import LoginForm, SelectForm
 from appname.models import User
+
+from werkzeug import secure_filename
+
+import os
+
 
 main = Blueprint('main', __name__)
 
+UPLOAD_PATH = "./uploads/"
 
 @main.route('/')
 @cache.cached(timeout=1000)
 def home():
     return render_template('index.html')
 
+@main.route("/select", methods=["GET", "POST"])
+def select():
+    form = SelectForm()
 
+    if form.validate_on_submit():
+        data_file = request.files['data_file']
+        curFilePath = os.path.join(UPLOAD_PATH, secure_filename(data_file.filename))
+        data_file.save(curFilePath)
+
+        flash("Uploaded successfully.", "success")
+        return redirect(url_for(".analyze"))
+
+    return render_template("select.html", form=form)
+
+
+@main.route("/analyze", methods=["GET"])
+def analyze():
+
+    return render_template("analyze.html")
+
+
+# ---------------------------------------------------------------
 @main.route("/login", methods=["GET", "POST"])
 def login():
     form = LoginForm()

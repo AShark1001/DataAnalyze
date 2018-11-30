@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Select File{% endblock %}
+
+{% block body %}
+    <h1 class="text-center"></h1>
+
+    <div class="row">
+        <div class="col-md-4 col-md-offset-4 well bs-component text-center">
+            <form role="form" action="" method="post" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+
+                <legend>Select File</legend>
+
+                <fieldset>
+                    {{ form.csrf_token }}
+                    {{ wtf.form_field(form.data_file) }}
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </fieldset>
+
+            </form>
+        </div>
+        <div class="col-md-4"></div>
+    </div>
+{% endblock %}

@@ -32,6 +32,7 @@ database.db
 docs/_build
 
 # Virtual environments
+venv
 env
 env*
 

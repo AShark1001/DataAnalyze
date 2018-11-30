@@ -14,6 +14,8 @@ from appname.extensions import (
     login_manager
 )
 
+from flask_bootstrap import Bootstrap
+
 
 def create_app(object_name):
     """
@@ -48,5 +50,7 @@ def create_app(object_name):
 
     # register our blueprints
     app.register_blueprint(main)
+
+    bootstrap = Bootstrap(app)
 
     return app
