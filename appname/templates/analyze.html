@@ -3,31 +3,102 @@
 {% block title %}Home{% endblock %}
 
 {% block body %}
-    <div class="jumbotron">
-        <h1>Analyze Data</h1>
-        <p>The visual dashboard</p>
+    <script src="https://cdn.plot.ly/plotly-1.8.0.min.js"></script>
+    <script>
+        var rawDataURL = 'https://raw.githubusercontent.com/plotly/datasets/master/2016-weather-data-seattle.csv';
+        var xField = 'Date';
+        var yField = 'Mean_TemperatureC';
+
+        var selectorOptions = {
+            buttons: [{
+                step: 'all',
+            }],
+        };
+
+        Plotly.d3.csv(rawDataURL, function(err, rawData) {
+            if(err) throw err;
+
+            var data = prepData(rawData);
+            var layout = {
+                title: 'Time series of {{ cur_file_name }}',
+                xaxis: {
+                    rangeselector: selectorOptions,
+                    rangeslider: {}
+                },
+                yaxis: {
+                    fixedrange: true
+                }
+            };
+
+            Plotly.plot('graph', data, layout);
+        });
+
+        function prepData(rawData) {
+            var x = [];
+            var y = [];
+
+            console.log(rawData.length)
+
+            rawData.forEach(function(datum, i) {
+                if(i % 100) return;
+
+                x.push(new Date(datum[xField]));
+                y.push(datum[yField]);
+            });
+
+            return [{
+                mode: 'lines',
+                x: x,
+                y: y
+            }];
+        }
+    </script>
+
+    <div class="row">
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+            Add a graph
+        </button>
     </div>
 
     <div class="row">
-        <div class="col-lg-12">
-            <h1>What's Included</h1>
-        </div>
+
     </div>
 
     <div class="row">
-        <div class="col-md-4">
-            <h3>Visual Graphs</h3>
-            <p></p>
-        </div>
-
-        <div class="col-md-4">
-            <h3>Additional Information on Data</h3>
-            <p>Standard Variation, P-P, Median, Average</p>
-        </div>
-
-        <div class="col-md-4">
-            <h3>Data Manipulation</h3>
-            <p>Observe, Extract, and Save</p>
-        </div>
+        <div id="graph"></div>
     </div>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="exampleModal" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title d-inline" style="display: inline">Select a column</h4>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+                <label for="columnSelect">Column: </label>
+                <select class="form-control" id="columnSelect">
+                    {% for col in columns %}
+                        <option value="{{ col.col_idx }}">{{ col.text }}</option>
+                    {% endfor %}
+                </select>
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="addGraph()">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+        function addGraph() {
+            console.log($('#columnSelect').val());
+        }
+    </script>
+
 {% endblock %}
