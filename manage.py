@@ -4,13 +4,13 @@ import os
 
 from flask_script import Manager, Server
 from flask_script.commands import ShowUrls, Clean
-from appname import create_app
-from appname.models import db, User
+from analyzeapp import create_app
+from analyzeapp.models import db, User
 
 # default to dev config because no one should use this in
 # production anyway
-env = os.environ.get('APPNAME_ENV', 'dev')
-app = create_app('appname.settings.%sConfig' % env.capitalize())
+env = os.environ.get('analyzeapp_ENV', 'dev')
+app = create_app('analyzeapp.settings.%sConfig' % env.capitalize())
 
 manager = Manager(app)
 manager.add_command("server", Server())

@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, flash, request, redirect, url_for
 from flask_login import login_user, logout_user, login_required
 
-from appname.extensions import cache
-from appname.forms import LoginForm, SelectForm
-from appname.models import User
+from analyzeapp.extensions import cache
+from analyzeapp.forms import LoginForm, SelectForm
+from analyzeapp.models import User
 
 from werkzeug import secure_filename
 
@@ -143,9 +143,12 @@ def analyze():
     #    rows = csv.reader(data_file, delimiter=' ', quotechar='|')
     #    for row in rows:
     #        row[0]
-    df = read_csv(cur_file_path)
+    df = read_csv(cur_file_path, skiprows=1)
+    data_cols = []
+    for col in range(30):
+        data_cols.append(df[str(col+1)].tolist())
 
-    return render_template("analyze.html", cur_file_name=cur_file_name, columns=col_dict)
+    return render_template("analyze.html", cur_file_name=cur_file_name, columns=col_dict, data=data_cols)
 
 
 # ---------------------------------------------------------------

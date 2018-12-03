@@ -41,4 +41,4 @@ env*
 *.sublime-*
 .cache/
 
-appname/static/public/*
+analyzeapp/static/public/*
