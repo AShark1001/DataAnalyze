@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, flash, request, redirect, url_for
+from flask import Blueprint, render_template, flash, request, redirect, url_for, jsonify
 from flask_login import login_user, logout_user, login_required
 
 from analyzeapp.extensions import cache
@@ -10,6 +10,9 @@ from werkzeug import secure_filename
 import os
 import csv
 from pandas import *
+
+from math import ceil, floor
+from statistics import stdev
 
 
 main = Blueprint('main', __name__)
@@ -116,6 +119,7 @@ data_to = {
         }
     ]
 }
+data_cols = []
 
 @main.route('/')
 @cache.cached(timeout=1000)
@@ -143,6 +147,8 @@ def select():
 
 @main.route("/analyze", methods=["GET"])
 def analyze():
+    global data_cols
+
     if (cur_file_name == "current file name"):
         return redirect(url_for(".select"))
     #with open(cur_file_path, 'rb') as data_file:
@@ -155,6 +161,25 @@ def analyze():
         data_cols.append(df[str(col)].tolist())
 
     return render_template("analyze.html", cur_file_name=cur_file_name, cols_meta=data_to, cols_data=data_cols)
+
+@main.route("/getinfo", methods=["GET"])
+def get_info():
+    global data_cols
+
+    xstart = floor(float(request.args.get("xstart")))
+    xend = ceil(float(request.args.get("xend")))
+    col_idx = int(request.args.get("col_idx"))
+
+    data = data_cols[col_idx][xstart: xend+1]
+
+    return jsonify({
+        "stdev": round(stdev(data),3),
+        "p2p": max(data) - min(data),
+        "median": round(sum(data) / len(data), 3),
+        "df": 1
+    })
+
+
 
 
 # ---------------------------------------------------------------

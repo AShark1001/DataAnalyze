@@ -8,15 +8,26 @@
         var cols_data = {{ cols_data }};
         var data_from = JSON.parse('{{ cols_meta | tojson | safe}}');
         var cols_meta = data_from.columns_meta;
-        console.log(cols_meta);
+        var graph_cnt = 0;
 
-        console.log("hello");
+        /*function onSelect(evtData) {
+            if (evtData['xaxis.range[0]'] != null && evtData['xaxis.range[1]'] != null){
+                var xstart = evtData['xaxis.range[0]'];
+                var xend = evtData['xaxis.range[1]'];
 
-        function doAddGraph(container, rawData) {
+                console.log(xstart, xend);
 
-            var data = prepData(rawData);
+                $.get('/getinfo?' + 'xstart=' + xstart + '&xend=' + xend + '&col_idx' =
+            }
+        }*/
+
+        function doAddGraph(id, col, graphTitle, data) {
+            var graphDiv = document.getElementById(id);
+            var container = document.getElementBy
+
+            var graphData = prepData(data);
             var layout = {
-                title: 'Time series of {{ cur_file_name }}',
+                title: '' + graphTitle + ' of {{ cur_file_name }}',
                 xaxis: {
                     rangeslider: {}
                 },
@@ -24,14 +35,27 @@
                 }
             };
 
-            Plotly.plot(container, data, layout);
+            Plotly.plot(graphDiv, graphData, layout);
+
+            graphDiv.on('plotly_relayout', function(evtData) {
+                if (evtData['xaxis.range'] != null){
+                    var xstart = evtData['xaxis.range'][0];
+                    var xend = evtData['xaxis.range'][1];
+
+                    $.get('/getinfo', { xstart: xstart, xend: xend, col_idx: col }).done( function (data) {
+                        var suffix = id.replace("graph", "");
+                        $('#stdev' + suffix).text(data.stdev);
+                        $('#p2p' + suffix).text(data.p2p);
+                        $('#median' + suffix).text(data.median);
+                        $('#df' + suffix).text(data.df);
+                    });
+                }
+            });
         }
 
         function prepData(rawData) {
             var x = [];
             var y = [];
-
-            console.log(rawData.length)
 
             for (var i = 0; i < rawData.length; i ++) {
                 x.push(i + 1);
@@ -75,7 +99,7 @@
             <div class="form-group">
                 <label for="columnSelect">Column: </label>
                 <select class="form-control" id="columnSelect">
-                    {% for col in cols_meta[1:] %}
+                    {% for col in cols_meta.columns_meta[1:] %}
                         <option value="{{ col.col_idx }}">{{ col.text }}</option>
                     {% endfor %}
                 </select>
@@ -93,9 +117,33 @@
         function addGraph() {
             var col = $('#columnSelect').val();
 
-            $('#graphContainer').append('<div class="row"><div id="graph' + col + '"></div></div>');
+            graph_cnt ++;
+            var id = 'graph' + graph_cnt;
 
-            doAddGraph('graph' + col, cols_meta[col], cols_data[col]);
+            $('#graphContainer').append('<div id="con_' + id + '" class="row"><div id="' + id + '"></div></div>');
+            var row = $('#con_' + id).append('<div class="row"></div>');
+            row.append('<table class="table">\
+                            <tbody>\
+                                <tr>\
+                                    <td style="width: 150px" align="right">SD:</td>\
+                                    <td style="width: 150px" align="left"><span id=stdev' + graph_cnt + '></span></td>\
+                                    <td style="width: 150px" align="right">Peak to Peak:</td>\
+                                    <td style="width: 150px" align="left"><span id=p2p' + graph_cnt + '></span></td>\
+                                    <td style="width: 150px" align="right">Median:</td>\
+                                    <td style="width: 150px" align="left"><span id=median' + graph_cnt + '></span></td>\
+                                    <td style="width: 150px" align="right">Data Frequency:</td>\
+                                    <td style="width: 150px" align="left"><span id=df' + graph_cnt + '></span></td>\
+                                    <td><button type="button" class="btn btn-danger" onclick="removeGraph(' + graph_cnt + ')">\
+                                            Remove\
+                                        </button>\
+                                    </td>\
+                                </tr>');
+
+            doAddGraph(id, col, cols_meta[col].text, cols_data[col]);
+        }
+
+        function removeGraph(graph_id) {
+            $('#con_graph' + graph_id).remove();
         }
     </script>
 
