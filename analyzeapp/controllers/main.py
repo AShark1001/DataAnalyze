@@ -17,99 +17,105 @@ main = Blueprint('main', __name__)
 UPLOAD_PATH = "./uploads/"
 cur_file_path = ""
 cur_file_name = "current file name"
-col_dict = [
-    {
-        "text": "xlaccel1",
-        "col_idx": 1
-    },{
-        "text": "xori1",
-        "col_idx": 2
-    },{
-        "text": "xlaccel2",
-        "col_idx": 3
-    },{
-        "text": "xori2",
-        "col_idx": 4
-    },{
-        "text": "xlaccel3",
-        "col_idx": 5
-    },{
-        "text": "xori3",
-        "col_idx": 6
-    },{
-        "text": "xlaccel4",
-        "col_idx": 7
-    },{
-        "text": "xori4",
-        "col_idx": 8
-    },{
-        "text": "xlaccel5",
-        "col_idx": 9
-    },{
-        "text": "xori5",
-        "col_idx": 10
-    },{
-        "text": "ylaccel1",
-        "col_idx": 11
-    },{
-        "text": "yori1",
-        "col_idx": 12
-    },{
-        "text": "ylaccel2",
-        "col_idx": 13
-    },{
-        "text": "yori2",
-        "col_idx": 14
-    },{
-        "text": "ylaccel3",
-        "col_idx": 15
-    },{
-        "text": "yori3",
-        "col_idx": 16
-    },{
-        "text": "ylaccel4",
-        "col_idx": 17
-    },{
-        "text": "yori4",
-        "col_idx": 18
-    },{
-        "text": "ylaccel5",
-        "col_idx": 19
-    },{
-        "text": "yori5",
-        "col_idx": 20
-    },{
-        "text": "zlaccel1",
-        "col_idx": 21
-    },{
-        "text": "zori1",
-        "col_idx": 22
-    },{
-        "text": "zlaccel2",
-        "col_idx": 23
-    },{
-        "text": "zori2",
-        "col_idx": 24
-    },{
-        "text": "zlaccel3",
-        "col_idx": 25
-    },{
-        "text": "zori3",
-        "col_idx": 26
-    },{
-        "text": "zlaccel4",
-        "col_idx": 27
-    },{
-        "text": "zori4",
-        "col_idx": 28
-    },{
-        "text": "zlaccel5",
-        "col_idx": 29
-    },{
-        "text": "zori5",
-        "col_idx": 30
-    }
-]
+data_to = {
+    "columns_meta" :[
+        {
+            "text": "timestamp",
+            "col_idx": 0
+        },
+        {
+            "text": "xlaccel1",
+            "col_idx": 1
+        },{
+            "text": "xori1",
+            "col_idx": 2
+        },{
+            "text": "xlaccel2",
+            "col_idx": 3
+        },{
+            "text": "xori2",
+            "col_idx": 4
+        },{
+            "text": "xlaccel3",
+            "col_idx": 5
+        },{
+            "text": "xori3",
+            "col_idx": 6
+        },{
+            "text": "xlaccel4",
+            "col_idx": 7
+        },{
+            "text": "xori4",
+            "col_idx": 8
+        },{
+            "text": "xlaccel5",
+            "col_idx": 9
+        },{
+            "text": "xori5",
+            "col_idx": 10
+        },{
+            "text": "ylaccel1",
+            "col_idx": 11
+        },{
+            "text": "yori1",
+            "col_idx": 12
+        },{
+            "text": "ylaccel2",
+            "col_idx": 13
+        },{
+            "text": "yori2",
+            "col_idx": 14
+        },{
+            "text": "ylaccel3",
+            "col_idx": 15
+        },{
+            "text": "yori3",
+            "col_idx": 16
+        },{
+            "text": "ylaccel4",
+            "col_idx": 17
+        },{
+            "text": "yori4",
+            "col_idx": 18
+        },{
+            "text": "ylaccel5",
+            "col_idx": 19
+        },{
+            "text": "yori5",
+            "col_idx": 20
+        },{
+            "text": "zlaccel1",
+            "col_idx": 21
+        },{
+            "text": "zori1",
+            "col_idx": 22
+        },{
+            "text": "zlaccel2",
+            "col_idx": 23
+        },{
+            "text": "zori2",
+            "col_idx": 24
+        },{
+            "text": "zlaccel3",
+            "col_idx": 25
+        },{
+            "text": "zori3",
+            "col_idx": 26
+        },{
+            "text": "zlaccel4",
+            "col_idx": 27
+        },{
+            "text": "zori4",
+            "col_idx": 28
+        },{
+            "text": "zlaccel5",
+            "col_idx": 29
+        },{
+            "text": "zori5",
+            "col_idx": 30
+        }
+    ]
+}
 
 @main.route('/')
 @cache.cached(timeout=1000)
@@ -145,10 +151,10 @@ def analyze():
     #        row[0]
     df = read_csv(cur_file_path, skiprows=1)
     data_cols = []
-    for col in range(30):
-        data_cols.append(df[str(col+1)].tolist())
+    for col in range(31):
+        data_cols.append(df[str(col)].tolist())
 
-    return render_template("analyze.html", cur_file_name=cur_file_name, columns=col_dict, data=data_cols)
+    return render_template("analyze.html", cur_file_name=cur_file_name, cols_meta=data_to, cols_data=data_cols)
 
 
 # ---------------------------------------------------------------

@@ -5,33 +5,27 @@
 {% block body %}
     <script src="https://cdn.plot.ly/plotly-1.8.0.min.js"></script>
     <script>
-        var rawDataURL = 'https://raw.githubusercontent.com/plotly/datasets/master/2016-weather-data-seattle.csv';
-        var xField = 'Date';
-        var yField = 'Mean_TemperatureC';
+        var cols_data = {{ cols_data }};
+        var data_from = JSON.parse('{{ cols_meta | tojson | safe}}');
+        var cols_meta = data_from.columns_meta;
+        console.log(cols_meta);
 
-        var selectorOptions = {
-            buttons: [{
-                step: 'all',
-            }],
-        };
+        console.log("hello");
 
-        Plotly.d3.csv(rawDataURL, function(err, rawData) {
-            if(err) throw err;
+        function doAddGraph(container, rawData) {
 
             var data = prepData(rawData);
             var layout = {
                 title: 'Time series of {{ cur_file_name }}',
                 xaxis: {
-                    rangeselector: selectorOptions,
                     rangeslider: {}
                 },
                 yaxis: {
-                    fixedrange: true
                 }
             };
 
-            Plotly.plot('graph', data, layout);
-        });
+            Plotly.plot(container, data, layout);
+        }
 
         function prepData(rawData) {
             var x = [];
@@ -39,12 +33,10 @@
 
             console.log(rawData.length)
 
-            rawData.forEach(function(datum, i) {
-                if(i % 100) return;
-
-                x.push(new Date(datum[xField]));
-                y.push(datum[yField]);
-            });
+            for (var i = 0; i < rawData.length; i ++) {
+                x.push(i + 1);
+                y.push(rawData[i]);
+            }
 
             return [{
                 mode: 'lines',
@@ -61,12 +53,14 @@
     </div>
 
     <div class="row">
-        {{ data }}
     </div>
 
-    <div class="row">
-        <div id="graph"></div>
+    <div class="row" id="graphContainer">
+        <div class="row">
+            <div id="graph"></div>
+        </div>
     </div>
+
 
     <div class="modal fade" tabindex="-1" role="dialog" id="exampleModal" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered" role="document">
@@ -81,7 +75,7 @@
             <div class="form-group">
                 <label for="columnSelect">Column: </label>
                 <select class="form-control" id="columnSelect">
-                    {% for col in columns %}
+                    {% for col in cols_meta[1:] %}
                         <option value="{{ col.col_idx }}">{{ col.text }}</option>
                     {% endfor %}
                 </select>
@@ -97,7 +91,11 @@
 
     <script>
         function addGraph() {
-            console.log($('#columnSelect').val());
+            var col = $('#columnSelect').val();
+
+            $('#graphContainer').append('<div class="row"><div id="graph' + col + '"></div></div>');
+
+            doAddGraph('graph' + col, cols_meta[col], cols_data[col]);
         }
     </script>
 
