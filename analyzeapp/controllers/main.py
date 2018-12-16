@@ -18,6 +18,7 @@ from statistics import stdev
 main = Blueprint('main', __name__)
 
 UPLOAD_PATH = "./uploads/"
+EXPORT_PATH = "./exports/"
 cur_file_path = ""
 cur_file_name = "current file name"
 data_to = {
@@ -120,6 +121,7 @@ data_to = {
     ]
 }
 data_cols = []
+data_frame = None
 
 @main.route('/')
 @cache.cached(timeout=1000)
@@ -139,7 +141,7 @@ def select():
         cur_file_path = os.path.join(UPLOAD_PATH, cur_file_name)
         data_file.save(cur_file_path)
 
-        flash("Uploaded successfully.", "success")
+        # flash("Uploaded successfully.", "success")
         return redirect(url_for(".analyze"))
 
     return render_template("select.html", form=form)
@@ -148,6 +150,7 @@ def select():
 @main.route("/analyze", methods=["GET"])
 def analyze():
     global data_cols
+    global data_frame
 
     if (cur_file_name == "current file name"):
         return redirect(url_for(".select"))
@@ -155,10 +158,10 @@ def analyze():
     #    rows = csv.reader(data_file, delimiter=' ', quotechar='|')
     #    for row in rows:
     #        row[0]
-    df = read_csv(cur_file_path, skiprows=1)
+    data_frame = read_csv(cur_file_path, skiprows=1)
     data_cols = []
     for col in range(31):
-        data_cols.append(df[str(col)].tolist())
+        data_cols.append(data_frame[str(col)].tolist())
 
     return render_template("analyze.html", cur_file_name=cur_file_name, cols_meta=data_to, cols_data=data_cols)
 
@@ -179,6 +182,35 @@ def get_info():
         "df": 1
     })
 
+@main.route("/exportdata", methods=["GET"])
+def export_data():
+    global data_cols
+    global data_frame
+
+    xstart = floor(float(request.args.get("xstart")))
+    xend = ceil(float(request.args.get("xend")))
+    col_idx = int(request.args.get("col_idx"))
+    this_only = True if (request.args.get("this_only")) == "true" else False
+
+    if this_only:
+        data = data_frame[str(col_idx)][xstart: xend+1]
+        path = os.path.join(EXPORT_PATH,
+                            cur_file_name.replace(".csv",
+                                                  "_extracted_" + data_to["columns_meta"][col_idx]["text"] + ".csv"))
+        data.to_csv(path)
+    else:
+        data = data_frame[xstart: xend+1]
+        path = os.path.join(EXPORT_PATH,
+                            cur_file_name.replace(".csv",
+                                                  "_extracted_all.csv"))
+        data.to_csv(path)
+
+    # flash("Successfully saved to " + path, "success")
+
+    return jsonify({
+        "status": "success",
+        "file": path
+    })
 
 
 

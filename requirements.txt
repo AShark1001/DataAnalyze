@@ -1,21 +1,14 @@
-Flask==0.12
-
-# Flask Extensions
-Flask-Assets==0.12
-Flask-Cache==0.13.1
-Flask-DebugToolbar==0.10.0
-Flask-Login==0.4.0
-Flask-Script==2.0.5
-Flask-SQLAlchemy==2.1
-Flask-WTF==0.14
-
-# Other
-itsdangerous==0.24
-cssmin==0.2.0
-jsmin==2.2.1
-
-# Testing
-pytest==3.0.5
-pytest-cov==2.4.0
-mccabe==0.3
-flake8==2.4.0
+webassets==0.12.1
+Flask_Login==0.4.1
+Flask_DebugToolbar==0.10.1
+Flask_Script==2.0.6
+pytest==4.0.1
+Flask==1.0.2
+WTForms==2.2.1
+Flask_Assets==0.12
+Flask_Cache==0.13.1
+Flask_WTF==0.14.2
+pandas==0.23.4
+Werkzeug==0.14.1
+Flask_SQLAlchemy==2.3.2
+Flask_Bootstrap==3.3.7.1
