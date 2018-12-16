@@ -163,6 +163,8 @@ def analyze():
     for col in range(31):
         data_cols.append(data_frame[str(col)].tolist())
 
+    data_frame = data_frame.set_index(str(0))
+
     return render_template("analyze.html", cur_file_name=cur_file_name, cols_meta=data_to, cols_data=data_cols)
 
 @main.route("/getinfo", methods=["GET"])
@@ -175,11 +177,19 @@ def get_info():
 
     data = data_cols[col_idx][xstart: xend+1]
 
+    avg = sum(data) / len(data)
+    cnt = 0
+    for i in range(xstart + 1, xend):
+        if (data_cols[col_idx][i] <= avg and data_cols[col_idx][i - 1] > avg) or (
+                data_cols[col_idx][i] >= avg and data_cols[col_idx][i - 1] < avg):
+            cnt += 1
+    df = floor(cnt / 2) / (data_cols[0][xend-1] - data_cols[0][xstart])
+
     return jsonify({
         "stdev": round(stdev(data),3),
         "p2p": max(data) - min(data),
         "median": round(sum(data) / len(data), 3),
-        "df": 1
+        "df": cnt/2
     })
 
 @main.route("/exportdata", methods=["GET"])
@@ -197,6 +207,8 @@ def export_data():
         path = os.path.join(EXPORT_PATH,
                             cur_file_name.replace(".csv",
                                                   "_extracted_" + data_to["columns_meta"][col_idx]["text"] + ".csv"))
+        data = data.reset_index()
+        data = data.set_index(str(0))
         data.to_csv(path)
     else:
         data = data_frame[xstart: xend+1]
