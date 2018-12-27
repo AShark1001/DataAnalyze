@@ -1,1 +1,1 @@
-web: gunicorn app:analyzeapp
+web: gunicorn analyzeapp:analyzeapp
