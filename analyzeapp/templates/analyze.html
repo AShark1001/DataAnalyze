@@ -2,18 +2,6 @@
 
 {% block title %}Home{% endblock %}
 
-    <div class="container" style="min-height:100% width:80%">
-	{% with messages = get_flashed_messages() %}
-	  {% if messages %}
-	    {% for message in messages %}
-		  <div class="alert alert-warning alert-dismissible" role="alert">
-		  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
-			{{message}}
-		  </div>
-		{% endfor %}
-	  {% endif %}
-	{% endwith %}
-
 {% block body %}
     <script src="https://cdn.plot.ly/plotly-1.8.0.min.js"></script>
     <script>
@@ -171,14 +159,14 @@
             row.append('<table class="table">\
                             <tbody>\
                                 <tr>\
-                                    <td style="width: 150px" align="right">SD:</td>\
-                                    <td style="width: 150px" align="left"><span id=stdev' + graph_cnt + '></span></td>\
-                                    <td style="width: 150px" align="right">Peak to Peak:</td>\
-                                    <td style="width: 150px" align="left"><span id=p2p' + graph_cnt + '></span></td>\
-                                    <td style="width: 150px" align="right">Median:</td>\
-                                    <td style="width: 150px" align="left"><span id=median' + graph_cnt + '></span></td>\
-                                    <td style="width: 150px" align="right">Data Frequency:</td>\
-                                    <td style="width: 150px" align="left"><span id=df' + graph_cnt + '></span></td>\
+                                    <td style="width: 150px" align="right"><h5>SD:</h5></td>\
+                                    <td style="width: 150px" align="left"><h5 id=stdev' + graph_cnt + '></h5></td>\
+                                    <td style="width: 150px" align="right"><h5>Peak to Peak:</h5></td>\
+                                    <td style="width: 150px" align="left"><h5 id=p2p' + graph_cnt + '></h5></td>\
+                                    <td style="width: 150px" align="right"><h5>Median:</h5></td>\
+                                    <td style="width: 150px" align="left"><h5 id=median' + graph_cnt + '></h5></td>\
+                                    <td style="width: 150px" align="right"><h5>Data Frequency:</h5></td>\
+                                    <td style="width: 150px" align="left"><h5 id=df' + graph_cnt + '></h5></td>\
                                     <td><button type="button" class="btn btn-success" onclick="openExportModal(' + col + ', ' + graph_cnt + ')">\
                                             Export\
                                         </button>\
