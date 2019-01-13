@@ -4,76 +4,22 @@
 
 {% block body %}
     <script src="https://cdn.plot.ly/plotly-1.8.0.min.js"></script>
-    <script>
-        var cols_data = {{ cols_data }};
-        var data_from = JSON.parse('{{ cols_meta | tojson | safe}}');
-        var cols_meta = data_from.columns_meta;
-        var graph_cnt = 0;
-        var selected_col = 0;
 
-        /*function onSelect(evtData) {
-            if (evtData['xaxis.range[0]'] != null && evtData['xaxis.range[1]'] != null){
-                var xstart = evtData['xaxis.range[0]'];
-                var xend = evtData['xaxis.range[1]'];
-
-                console.log(xstart, xend);
-
-                $.get('/getinfo?' + 'xstart=' + xstart + '&xend=' + xend + '&col_idx' =
-            }
-        }*/
-
-        function doAddGraph(id, col, graphTitle, data) {
-            var graphDiv = document.getElementById(id);
-            var container = document.getElementBy
-
-            var graphData = prepData(data);
-            var layout = {
-                title: '' + graphTitle + ' of {{ cur_file_name }}',
-                xaxis: {
-                    rangeslider: {}
-                },
-                yaxis: {
-                }
-            };
-
-            Plotly.plot(graphDiv, graphData, layout, {displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud', 'toImage']});
-
-            graphDiv.on('plotly_relayout', function(evtData) {
-                if (evtData['xaxis.range'] != null){
-                    var xstart = evtData['xaxis.range'][0];
-                    var xend = evtData['xaxis.range'][1];
-
-                    $.get('/getinfo', { xstart: xstart, xend: xend, col_idx: col }).done( function (data) {
-                        var suffix = id.replace("graph", "");
-                        $('#stdev' + suffix).text(data.stdev);
-                        $('#p2p' + suffix).text(data.p2p);
-                        $('#median' + suffix).text(data.median);
-                        $('#df' + suffix).text(data.df + " peaks");
-                    });
-                }
-            });
+    <style>
+        .borderless td, .borderless th {
+            border: none;
         }
-
-        function prepData(rawData) {
-            var x = [];
-            var y = [];
-
-            for (var i = 0; i < rawData.length; i ++) {
-                x.push(i + 1);
-                y.push(rawData[i]);
-            }
-
-            return [{
-                mode: 'lines',
-                x: x,
-                y: y
-            }];
+        .borderless td {
+            padding: 5px;
         }
-    </script>
+    </style>
 
     <div class="row">
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addGraphModal">
             Add a graph
+        </button>
+        <button type="button" class="btn btn-danger" onclick="onRemoveAll()">
+            Remove all graphs
         </button>
     </div>
 
@@ -87,19 +33,25 @@
     </div>
 
 
-    <div class="modal fade" tabindex="-1" role="dialog" id="exampleModal" aria-hidden="true">
+    <div class="modal fade" tabindex="-1" role="dialog" id="addGraphModal" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title d-inline" style="display: inline">Select a column</h4>
+            <h4 class="modal-title d-inline" style="display: inline">Select data for graph</h4>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
           <div class="modal-body">
             <div class="form-group">
-                <label for="columnSelect">Column: </label>
-                <select class="form-control" id="columnSelect">
+                <label for="selectFileCtrl">File: </label>
+                <select class="form-control" id="selectFileCtrl">
+                    {% for file in files %}
+                        <option value="{{ file }}">{{ file }}</option>
+                    {% endfor %}
+                </select>
+                <label for="selectColumnCtrl">Column: </label>
+                <select class="form-control" id="selectColumnCtrl">
                     {% for col in cols_meta.columns_meta[1:] %}
                         <option value="{{ col.col_idx }}">{{ col.text }}</option>
                     {% endfor %}
@@ -108,7 +60,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="addGraph()">Ok</button>
+            <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="addGraph(false)">Ok</button>
           </div>
         </div>
       </div>
@@ -126,17 +78,19 @@
           <div class="modal-body">
             <div class="form-group">
                 <div class="form-check">
-                  <input class="form-check-input" type="radio" name="exportOption" id="allField" value="allField" >
+                  <input class="form-check-input" type="radio" name="exportOption" id="allField" value="allField" onclick="exportOptionChanged(false)">
                   <label class="form-check-label" for="allField">
                     Extract all fields
                   </label>
                 </div>
                 <div class="form-check">
-                  <input class="form-check-input" type="radio" name="exportOption" id="thisField" value="thisField" checked>
+                  <input class="form-check-input" type="radio" name="exportOption" id="thisField" value="thisField" checked onclick="exportOptionChanged(true)">
                   <label class="form-check-label" for="thisField">
                     Extract only this field
                   </label>
                 </div>
+                <label for="txtExportName">File Name: </label>
+                <input type="text" class="form-control" id="txtExportName">
             </div>
           </div>
           <div class="modal-footer">
@@ -147,58 +101,339 @@
       </div>
     </div>
 
-    <script>
-        function addGraph() {
-            var col = $('#columnSelect').val();
+{% endblock %}
 
-            graph_cnt ++;
-            var id = 'graph' + graph_cnt;
+{% block custom_js %}
+<script>
 
-            $('#graphContainer').append('<div id="con_' + id + '" class="row"><div id="' + id + '"></div></div>');
-            var row = $('#con_' + id).append('<div class="row"></div>');
-            row.append('<table class="table">\
-                            <tbody>\
-                                <tr>\
-                                    <td style="width: 150px" align="right"><h5>SD:</h5></td>\
-                                    <td style="width: 150px" align="left"><h5 id=stdev' + graph_cnt + '></h5></td>\
-                                    <td style="width: 150px" align="right"><h5>Peak to Peak:</h5></td>\
-                                    <td style="width: 150px" align="left"><h5 id=p2p' + graph_cnt + '></h5></td>\
-                                    <td style="width: 150px" align="right"><h5>Median:</h5></td>\
-                                    <td style="width: 150px" align="left"><h5 id=median' + graph_cnt + '></h5></td>\
-                                    <td style="width: 150px" align="right"><h5>Data Frequency:</h5></td>\
-                                    <td style="width: 150px" align="left"><h5 id=df' + graph_cnt + '></h5></td>\
-                                    <td><button type="button" class="btn btn-success" onclick="openExportModal(' + col + ', ' + graph_cnt + ')">\
-                                            Export\
-                                        </button>\
-                                    </td>\
-                                    <td><button type="button" class="btn btn-danger" onclick="removeGraph(' + graph_cnt + ')">\
-                                            Remove\
-                                        </button>\
-                                    </td>\
-                                </tr>');
+    class Graph {
+        constructor (file, col, graph_id, xstart, xend, data) {
+            this.file = file;
+            this.col = col;
+            this.graph_id = graph_id;
+            this.xstart = xstart;
+            this.xend = xend;
+            this.data = data;
+        }
+    }
 
-            doAddGraph(id, col, cols_meta[col].text, cols_data[col]);
+    var graphs = null;
+    var data_from = JSON.parse('{{ cols_meta | tojson | safe}}');
+    var cols_meta = data_from.columns_meta;
+
+    var graph_cnt = 0;
+
+    var selected_col = 0;
+    var selected_file = "";
+
+    var d3colors = Plotly.d3.scale.category10();
+
+    console.log(d3colors);
+
+    if (typeof(Storage) !== "undefined") {
+        // Code for localStorage/sessionStorage.
+        console.log(sessionStorage);
+
+    } else {
+        // Sorry! No Web Storage support..
+        alert('Sorry! No Web Storage support...');
+    }
+
+    if (sessionStorage.graphs){
+        graphs = JSON.parse(sessionStorage.graphs);
+        graphs.forEach(function(graph) {
+            selected_col = graph.col;
+            selected_file = graph.file;
+            addGraph(true);
+        });
+    }
+    else
+        graphs = [];
+
+    /*function onSelect(evtData) {
+        if (evtData['xaxis.range[0]'] != null && evtData['xaxis.range[1]'] != null)
+            var xend = evtData['xaxis.range[1]'];
+    }*/
+
+    function addGraph(restore) {
+        let file = null;
+        let col = null;
+
+        if (restore){
+            file = selected_file;
+            col = selected_col;
+        }
+        else{
+            file = $('#selectFileCtrl').val();
+            col = $('#selectColumnCtrl').val();
         }
 
-        function removeGraph(graph_id) {
-            $('#con_graph' + graph_id).remove();
+        graph_cnt ++;
+        let id = 'graph' + graph_cnt;
+
+        $('#graphContainer').append('<div id="con_' + id + '" class="row"><div id="' + id + '"></div></div>');
+        let row = $('#con_' + id).append('<div class="row"></div>');
+        row.append('<table class="borderless" border="0">\
+                        <tbody>\
+                            <tr>\
+                                <td style="width: 150px" align="right"><h5>SD:</h5></td>\
+                                <td style="width: 150px" align="left"><h5 id=stdev' + graph_cnt + '></h5></td>\
+                                <td style="width: 150px" align="right"><h5>Peak to Peak:</h5></td>\
+                                <td style="width: 150px" align="left"><h5 id=p2p' + graph_cnt + '></h5></td>\
+                                <td style="width: 150px" align="right"><h5>Median:</h5></td>\
+                                <td style="width: 150px" align="left"><h5 id=median' + graph_cnt + '></h5></td>\
+                                <td style="width: 150px" align="right"><h5>Data Frequency:</h5></td>\
+                                <td style="width: 150px" align="left"><h5 id=df' + graph_cnt + '></h5></td>\
+                                <td style="width: 150px" align="right"><h5>Range:</h5></td>\
+                                <td align="left" colspan="2">\
+                                    <input style="width: 70px" type="number" id=xstart' + graph_cnt + '>\
+                                    <input style="width: 70px" type="number" id=xend' + graph_cnt + '>\
+                                </td>\
+                                <td><button type="button" class="btn btn-info" onclick="applyLayout(\''+ file + '\', ' + col + ', ' + graph_cnt + ')">\
+                                        Apply\
+                                    </button>\</td>\
+                                <td><button type="button" class="btn btn-success" onclick="openExportModal(\''+ file + '\', ' + col + ', ' + graph_cnt + ')">\
+                                        Export\
+                                    </button>\
+                                </td>\
+                                <td><button type="button" class="btn btn-danger" onclick="removeGraph(' + graph_cnt + ')">\
+                                        Remove\
+                                    </button>\
+                                </td>\
+                            </tr>\
+                            <tr>\
+                                <td style="width: 150px" align="right"><h5>Peak:</h5></td>\
+                                <td><input value="0" style="width: 70px" type="number" id=peak' + graph_cnt + '></td>\
+                                <td><div class="custom-control custom-radio">\
+                                    <input checked type="radio" id="above' + graph_cnt + '" name="peakRadio' + graph_cnt + '" class="custom-control-input">\
+                                    <label class="custom-control-label" for="above' + graph_cnt + '">Above</label>\
+                                    <br>\
+                                    <input type="radio" id="below' + graph_cnt + '" name="peakRadio' + graph_cnt + '" class="custom-control-input">\
+                                    <label class="custom-control-label" for="below' + graph_cnt + '">Below</label>\
+                                    </div>\
+                                </td>\
+                                <td><button type="button" class="btn btn-info" onclick="setPeaks(' + graph_cnt + ')">\
+                                        Set\
+                                    </button>\
+                                </td>\
+                            </tr>');
+
+        doAddGraph(id, file, col, cols_meta[col].text, restore);
+    }
+
+    function prepData(rawData) {
+        let x = [];
+        let y = [];
+
+        for (let i = 0; i < rawData.length; i ++) {
+            x.push(i + 1);
+            y.push(rawData[i]);
         }
 
-        function openExportModal(col, graph_id) {
-            selected_col = col;
+        return [{
+            x: x,
+            y: y,
+            mode: 'lines+markers',
+            marker: {
+                symbol: 'circle'
+            }
+        }];
+    }
 
-            selected_xstart = $('#graph' + graph_id)[0].layout.xaxis.range[0];
-            selected_xend = $('#graph' + graph_id)[0].layout.xaxis.range[1];
-            $("#exportModal").modal();
-        }
-        function exportData() {
-            thisOnly = $('#thisField')[0].checked;
-            $.get('/exportdata', { xstart: selected_xstart, xend: selected_xend, col_idx: selected_col, this_only: thisOnly }).done( function (data) {
-                if (data.status == "success")
-                    toastr.success("Exported to " + data.file);
+    function doAddGraph(id, file, col, graphTitle, restore) {
+        let graphDiv = document.getElementById(id);
+        let graph_id = id.replace("graph", "");
+
+        $.get('/getdata', { file: file, col_idx: col }).done( function (data) {
+            if (data.status != "success")
+                return;
+
+            if (!restore){
+                let graph = new Graph(file, col, graph_id, 0, data.data.length, data.data);
+                graphs.push(graph);
+                sessionStorage.graphs = JSON.stringify(graphs);
+            }
+
+            let graphData = prepData(data.data);
+            let layout = {
+                title: '' + graphTitle + ' of ' + file,
+                xaxis: {
+                    range: [0, data.data.length],
+                    rangeslider: {
+                        range: [0, data.data.length]
+                    }
+                },
+                yaxis: {
+                }
+            };
+
+            Plotly.plot(graphDiv, graphData, layout, {displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud', 'toImage']});
+
+            graphDiv.on('plotly_relayout', function(evtData) {
+                if (evtData['xaxis.range'] != null){
+                    let xstart = evtData['xaxis.range'][0];
+                    let xend = evtData['xaxis.range'][1];
+
+                    let graph = graphs.find(g => g.graph_id == graph_id);
+                    graph.xstart = xstart;
+                    graph.xend = xend;
+                    sessionStorage.graphs = JSON.stringify(graphs);
+
+                    $.get('/getinfo', { file: file, col_idx: col, xstart: xstart, xend: xend }).done( function (data) {
+                        let suffix = id.replace("graph", "");
+                        $('#stdev' + suffix).text(data.stdev);
+                        $('#p2p' + suffix).text(data.p2p);
+                        $('#median' + suffix).text(data.median);
+                        $('#df' + suffix).text(data.df + " peaks");
+
+                        $('#xstart' + suffix).val(data.xstart);
+                        $('#xend' + suffix).val(data.xend);
+                    });
+                }
             });
+
+            // load saved, works for both new and restore
+            let graph = graphs.find(g => g.graph_id == graph_id);
+            let new_xstart = graph.xstart;
+            let new_xend = graph.xend;
+
+            Plotly.relayout(document.getElementById('graph' + graph_id),
+            {
+                xaxis: {
+                    range: [new_xstart, new_xend],
+                    rangeslider: {
+                        range: [new_xstart, new_xend]
+                    }
+                },
+                yaxis: { }
+            });
+
+            // no effect
+            Plotly.relayout(document.getElementById('graph' + graph_id),
+                'xaxis.range', 
+                [new_xstart, new_xend]);
+            Plotly.relayout(document.getElementById('graph' + graph_id),
+                'xaxis.rangeslider.range', 
+                [new_xstart, new_xend]);
+
+            // Plotly.relayout(graphDiv, {title: "hello"});
+            $.get('/getinfo', { file: file, col_idx: col,
+                xstart: (restore? new_xstart :0), xend: (restore? new_xend: data.data.length) }).done( function (data) {
+
+                let suffix = id.replace("graph", "");
+                $('#stdev' + suffix).text(data.stdev);
+                $('#p2p' + suffix).text(data.p2p);
+                $('#median' + suffix).text(data.median);
+                $('#df' + suffix).text(data.df + " peaks");
+
+                $('#xstart' + suffix).val(data.xstart);
+                $('#xend' + suffix).val(data.xend);
+            });
+        });
+    }
+
+    function setPeaks(graph_id) {
+        let above = document.getElementById('above' + graph_id);
+        let below = document.getElementById('below' + graph_id);
+
+        if (!above.checked && !below.checked) {
+            toastr.warning("Select Above or Below.");
+            return;
         }
 
-    </script>
+        let peak = $('#peak' + graph_id);
 
+        let graph = graphs.find(g => g.graph_id == graph_id);
+
+        let colors = graph.data.map(function(d) {
+            if ((Number(d) > Number(peak.val()) && above.checked) || 
+                (Number(d) < Number(peak.val()) && below.checked))
+                return d3colors(1);
+            else
+                return d3colors(0);
+        });
+
+        Plotly.restyle(document.getElementById('graph' + graph_id), 'marker.color', [colors]);
+    }
+
+    function removeGraph(graph_id) {
+        $('#con_graph' + graph_id).remove();
+        let graph_id = graphs.findIndex(g => g.graph_id == graph_id);
+        graphs.splice(graph_id, 1);
+        sessionStorage.graphs = JSON.parse(sessionStorage.graphs);
+    }
+
+    function applyLayout(file, col, graph_id) {
+        let new_xstart = $('#xstart' + graph_id).val();
+        let new_xend = $('#xend' + graph_id).val();
+
+        if (Number(new_xstart) >= Number(new_xend)){
+            toastr.warning("Invalid range");
+            return;
+        }
+
+        Plotly.relayout(document.getElementById('graph' + graph_id),
+            {
+                xaxis: {
+                    range: [new_xstart, new_xend],
+                    rangeslider: {
+                        range: [new_xstart, new_xend]
+                    }
+                },
+                yaxis: { }
+            });
+        
+        // no effect
+        Plotly.relayout(document.getElementById('graph' + graph_id),
+            'xaxis.range', 
+            [new_xstart, new_xend]);
+        Plotly.relayout(document.getElementById('graph' + graph_id),
+            'xaxis.rangeslider.range', 
+            [new_xstart, new_xend]);
+        
+        $.get('/getinfo', { file: file, col_idx: col, xstart: new_xstart, xend: new_xend }).done( function (data) {
+            let suffix = graph_id;
+            $('#stdev' + suffix).text(data.stdev);
+            $('#p2p' + suffix).text(data.p2p);
+            $('#median' + suffix).text(data.median);
+            $('#df' + suffix).text(data.df + " peaks");
+
+            $('#xstart' + suffix).val(data.xstart);
+            $('#xend' + suffix).val(data.xend);
+        });
+    }
+
+    function exportOptionChanged(this_only)
+    {
+        if (this_only)
+            $("#txtExportName").val(selected_file.replace(".csv", "_extracted_" + cols_meta[selected_col].text + "_.csv"));
+        else
+            $("#txtExportName").val(selected_file.replace(".csv", "_extracted_all_.csv"));
+    }
+
+    function openExportModal(file, col, graph_id) {
+        selected_col = col;
+        selected_file = file;
+
+        selected_xstart = document.getElementById('graph' + graph_id).layout.xaxis.range[0];
+        selected_xend = document.getElementById('graph' + graph_id).layout.xaxis.range[1];
+
+        $("#thisField").prop("checked", true).trigger("click");
+
+        $("#exportModal").modal();
+    }
+    function exportData() {
+        let thisOnly = document.getElementById('thisField').checked;
+        let exportname = $("#txtExportName").val();
+        $.get('/exportdata', { exportname: exportname, file: selected_file, xstart: selected_xstart, xend: selected_xend, col_idx: selected_col, this_only: thisOnly }).done( function (data) {
+            if (data.status == "success")
+                toastr.success("Exported to " + data.file);
+        });
+    }
+    function onRemoveAll(){
+        sessionStorage.clear();
+        document.location.reload();
+    }
+
+</script>
 {% endblock %}

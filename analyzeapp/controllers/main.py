@@ -19,8 +19,6 @@ main = Blueprint('main', __name__)
 
 UPLOAD_PATH = "./uploads/"
 EXPORT_PATH = "./exports/"
-cur_file_path = ""
-cur_file_name = "current file name"
 data_to = {
     "columns_meta" :[
         {
@@ -120,8 +118,25 @@ data_to = {
         }
     ]
 }
-data_cols = []
-data_frame = None
+
+
+data_dict = {}
+
+class DataFile:
+    def __init__(self, file):
+        self.data_cols = []
+        self.file = file
+        self.data_frame = None
+
+    def read(self):
+        self.data_frame = read_csv(self.file, skiprows=1)
+        self.data_cols = []
+        for col in range(31):
+            self.data_cols.append(self.data_frame[str(col)].tolist())
+
+        self.data_frame = self.data_frame.set_index(str(0))
+
+
 
 @main.route('/')
 @cache.cached(timeout=1000)
@@ -130,16 +145,20 @@ def home():
 
 @main.route("/select", methods=["GET", "POST"])
 def select():
-    global cur_file_name
-    global cur_file_path
+    global data_dict
 
     form = SelectForm()
 
     if form.validate_on_submit():
-        data_file = request.files['data_file']
-        cur_file_name = secure_filename(data_file.filename)
-        cur_file_path = os.path.join(UPLOAD_PATH, cur_file_name)
-        data_file.save(cur_file_path)
+        data_file = request.files.getlist('data_file')
+
+        for f in data_file:
+            if f.filename.endswith(".csv"):
+                cur_file_name = secure_filename(f.filename)
+                if not cur_file_name in data_dict:
+                    cur_file_path = os.path.join(UPLOAD_PATH, cur_file_name)
+                    f.save(cur_file_path)
+                    data_dict[cur_file_name] = DataFile(cur_file_path)
 
         # flash("Uploaded successfully.", "success")
         return redirect(url_for(".analyze"))
@@ -149,32 +168,33 @@ def select():
 
 @main.route("/analyze", methods=["GET"])
 def analyze():
-    global data_cols
-    global data_frame
+    global data_dict
 
-    if (cur_file_name == "current file name"):
+    #for file in os.listdir(UPLOAD_PATH):
+    #    if file.endswith(".csv"):
+    #        if not file in data_dict:
+    #            data_dict[file] = DataFile(file)
+
+    if not data_dict:
         return redirect(url_for(".select"))
+
     #with open(cur_file_path, 'rb') as data_file:
     #    rows = csv.reader(data_file, delimiter=' ', quotechar='|')
     #    for row in rows:
     #        row[0]
-    data_frame = read_csv(cur_file_path, skiprows=1)
-    data_cols = []
-    for col in range(31):
-        data_cols.append(data_frame[str(col)].tolist())
 
-    data_frame = data_frame.set_index(str(0))
-
-    return render_template("analyze.html", cur_file_name=cur_file_name, cols_meta=data_to, cols_data=data_cols)
+    return render_template("analyze.html", files=list(data_dict.keys()), cols_meta=data_to)
 
 @main.route("/getinfo", methods=["GET"])
 def get_info():
-    global data_cols
+    global data_dict
 
+    file = request.args.get("file")
     xstart = floor(float(request.args.get("xstart")))
     xend = ceil(float(request.args.get("xend")))
     col_idx = int(request.args.get("col_idx"))
 
+    data_cols = get_data_cols(file)
     data = data_cols[col_idx][xstart: xend+1]
 
     avg = sum(data) / len(data)
@@ -189,32 +209,61 @@ def get_info():
         "stdev": round(stdev(data),3),
         "p2p": max(data) - min(data),
         "median": round(sum(data) / len(data), 3),
-        "df": cnt/2
+        "df": cnt/2,
+        "xstart": int(xstart),
+        "xend": int(xend)
     })
+
+def get_data_cols(file):
+    if not data_dict[file].data_cols:
+        data_dict[file].read()
+    return data_dict[file].data_cols
+
+def get_data_frame(file):
+    if not data_dict[file].data_cols:
+        data_dict[file].read()
+    return data_dict[file].data_frame
+
+@main.route("/getdata", methods=["GET"])
+def get_data():
+    global data_dict
+
+    file = request.args.get("file")
+    col_idx = int(request.args.get("col_idx"))
+
+    if file in data_dict:
+        data = get_data_cols(file)[col_idx]
+
+        return jsonify({
+            "status": "success",
+            "data": data
+        })
+    else:
+        return jsonify({
+            "status": "fail"
+        })
 
 @main.route("/exportdata", methods=["GET"])
 def export_data():
-    global data_cols
-    global data_frame
 
+    exportname = request.args.get("exportname")
+    file = request.args.get("file")
     xstart = floor(float(request.args.get("xstart")))
     xend = ceil(float(request.args.get("xend")))
     col_idx = int(request.args.get("col_idx"))
     this_only = True if (request.args.get("this_only")) == "true" else False
 
+    data_frame = get_data_frame(file)
+
     if this_only:
         data = data_frame[str(col_idx)][xstart: xend+1]
-        path = os.path.join(EXPORT_PATH,
-                            cur_file_name.replace(".csv",
-                                                  "_extracted_" + data_to["columns_meta"][col_idx]["text"] + ".csv"))
+        path = os.path.join(EXPORT_PATH, exportname)
         data = data.reset_index()
         data = data.set_index(str(0))
         data.to_csv(path)
     else:
         data = data_frame[xstart: xend+1]
-        path = os.path.join(EXPORT_PATH,
-                            cur_file_name.replace(".csv",
-                                                  "_extracted_all.csv"))
+        path = os.path.join(EXPORT_PATH,exportname)
         data.to_csv(path)
 
     # flash("Successfully saved to " + path, "success")

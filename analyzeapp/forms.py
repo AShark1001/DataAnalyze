@@ -1,13 +1,15 @@
 from flask_wtf import Form, FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import TextField, PasswordField, FileField
+from wtforms import TextField, PasswordField, FileField, MultipleFileField
 from wtforms import validators
 
 
 class SelectForm(FlaskForm):
-    data_file = FileField('Data File', validators=[
-        FileRequired(),
-        FileAllowed(['csv'], 'CSV files only!')])
+    data_file = MultipleFileField('Data Files')
+
+    # FileField('Data Files', validators=[
+    #    FileRequired(),
+    #    FileAllowed(['csv'], 'CSV files only!')])
 
     def validate(self):
         check_validate = super(SelectForm, self).validate()

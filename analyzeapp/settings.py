@@ -7,7 +7,7 @@ class Config(object):
 
 
 class ProdConfig(Config):
-    ENV = 'prod'
+    ENV = 'dev'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///../database.db'
 
     CACHE_TYPE = 'simple'
